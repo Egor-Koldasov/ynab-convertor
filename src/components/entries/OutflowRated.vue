@@ -1,16 +1,35 @@
 <script setup lang="ts">
 import { ref, onBeforeMount, watchEffect, computed } from 'vue';
-import { storageKeys } from '../../util/vars/storageKeys';
+import debounce from "debounce";
+import { RateStorage } from '../../util/RateStorage';
+import { RateMethod } from '../../types/RateMethod';
+import { RateStorageState } from '../../types/RateStorageState';
 
   const rate = ref<number | null>(null);
+  const rateMethod = ref<RateMethod>(RateMethod.multiply);
+  const unsubscribe = ref<() => void>(() => {});
   const outflowRatedString = ref<string>('');
+
+  const syncWithStorage = (state: RateStorageState) => {
+    rate.value = state.rate;
+    rateMethod.value = state.method;
+  }
+
   const outflowRated = computed(() => parseFloat(outflowRatedString.value));
+  const fixOutflowInput = debounce((outflowInput: HTMLInputElement) => {
+    const currentFocus = document.activeElement;
+    outflowInput.focus();
+    window.requestAnimationFrame(() => {
+      if (currentFocus) {
+        (currentFocus as HTMLElement).focus();
+      }
+    })
+  }, 10)
 
   onBeforeMount(() => {
-    const storedRate = localStorage.getItem(storageKeys.rate);
-    if (storedRate) {
-      rate.value = parseFloat(storedRate);
-    }
+    const state = RateStorage.get();
+    syncWithStorage(state)
+    unsubscribe.value = RateStorage.subscribe(syncWithStorage)
   });
 
   watchEffect(() => {
@@ -19,18 +38,20 @@ import { storageKeys } from '../../util/vars/storageKeys';
     if (!outflowRated.value || isNaN(outflowRated.value) || !isFinite(outflowRated.value)) return;
     if (!rate.value) return;
 
-    const ratedLong = outflowRated.value / rate.value
+    const ratedLong = rateMethod.value === RateMethod.multiply ? outflowRated.value * rate.value : outflowRated.value / rate.value
     const ratedRound = Math.round((ratedLong + Number.EPSILON) * 100) / 100
     outflowInput.value = String(ratedRound);
 
+    // Reverse-ingeniered fix, without it the outflow input will reset
     outflowInput.dispatchEvent(new Event('input', { bubbles: true, cancelable: true, composed: true }));
     outflowInput.dispatchEvent(new Event('change', { bubbles: true, cancelable: true, composed: true }));
+    fixOutflowInput(outflowInput)
   })
 </script>
 
 <template>
   <div class="outflow-rated">
-    <input class="outflow-input accounts-text-field" type="number" placeholder="rated outflow" v-model="outflowRatedString" @keydown.stop />
+    <input class="outflow-input accounts-text-field" type="number" placeholder="orig outflow" v-model="outflowRatedString" @keydown.stop />
   </div>
 </template>
 

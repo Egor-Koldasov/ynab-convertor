@@ -13,16 +13,17 @@ export default defineConfig({
     monkey({
       entry: 'src/main.ts',
       userscript: {
-        icon: 'https://vitejs.dev/logo.svg',
-        namespace: 'npm/vite-plugin-monkey',
         match: ['https://app.ynab.com/*']
       },
       build: {
-        externalGlobals: {
-          vue: cdn.jsdelivr('Vue', 'dist/vue.global.prod.js')
-        }
+        // externalGlobals: {
+        //   vue: cdn.jsdelivr('Vue', 'dist/vue.global.prod.js')
+        // }
       },
       server: { mountGmApi: true }
     })
-  ]
+  ],
+  build: {
+    minify: true
+  }
 })

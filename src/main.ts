@@ -31,6 +31,7 @@ const mountOutflowRated = async () => {
   root.className = 'ynab-grid-cell js-ynab-grid-cell user-data'
   // root.style.maxWidth = '100px'
   root.style.padding = '0'
+  root.style.paddingTop = '2px'
   memoCell.appendChild(root)
   memoCell.classList.add('outflow-rated-added')
 
